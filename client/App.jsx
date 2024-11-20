@@ -1,8 +1,11 @@
 import React from 'react'
+import DataRequest from './components/DataRequest'
 
 const App = () => {
   return (
-    <div>App</div>
+    <div>
+        <DataRequest />
+    </div>
   )
 }
 
