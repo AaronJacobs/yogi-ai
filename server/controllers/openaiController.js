@@ -43,8 +43,8 @@ export const queryOpenai = async (req, res, next) => {
       };
       return next(error);
     }
-    //res.locals.aiQueryString = completion.choices[0].message.content
-    console.log(completion.choices[0].message.content);
+    res.locals.aiQueryString = completion.choices[0].message.content;
+    // console.log(completion.choices[0].message.content);
     console.log('Exiting queryOpenai');
     return next();
   } catch (error) {

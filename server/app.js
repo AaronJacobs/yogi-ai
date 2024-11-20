@@ -11,7 +11,7 @@ app.use(cors());
 app.use(express.json());
 
 app.use(
-  '/query',
+  '/api/query',
   (req, res, next) => {
     console.log('Found Endpoint!');
     return next();
