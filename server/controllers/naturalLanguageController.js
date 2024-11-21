@@ -1,6 +1,7 @@
 export const parseNaturalLanguageQuery = async (req, res, next) => {
   console.log('Parsing the Natural Language Query!');
   console.log('req.body looks like this:', req.body);
+  console.log(req.body.naturalLanguageQuery, !req.body.naturalLanguageQuery);
   if (!req.body.naturalLanguageQuery) {
     const error = {
       log: 'Natural Language Query not provided',

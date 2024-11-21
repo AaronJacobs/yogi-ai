@@ -18,8 +18,8 @@ app.use(
   },
   parseNaturalLanguageQuery,
   queryOpenai,
-  (req, res, next) => {
-    res.status(200).json({}); //INSERT DATA TO RETURN
+  (_req, res, _next) => {
+    res.status(200).json(res.locals.aiQueryString);
   }
 );
 

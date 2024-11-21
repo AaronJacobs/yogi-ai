@@ -7,9 +7,7 @@ const DataRequest = () => {
   const [naturalLanguageQuery, setNaturalLanguageQuery] = useState(''); // query text to be input by user
   const [loading, setLoading] = useState(false); // boolean that will be set to true when the request is being made
   const [error, setError] = useState(''); // error message to be displayed if request fails
-  const [serverResponse, setServerResponse] = useState(
-    'hello therehello therehello therehello therehello therehello therehello therehello therehello therehello therehello therehello therehello therehello therehello therehello therehello therehello therehello therehello therehello therehello there'
-  ); // response from server to be displayed to user
+  const [serverResponse, setServerResponse] = useState(''); // response from server to be displayed to user
 
   const handleSubmit = async () => {
     // should also check if postgres uri and request text are not empty
