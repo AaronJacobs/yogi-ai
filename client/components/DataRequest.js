@@ -43,7 +43,7 @@ const DataRequest = () => {
           fontSize: 30,
         }}
       >
-        Data Request Component wooooo
+        Data Wizard
       </Typography>
       <TextField
         fullWidth
@@ -61,11 +61,14 @@ const DataRequest = () => {
         minRows={5}
         sx={{ marginBottom: 1 }}
         id='naturalLanguageQuery'
-        label='Description of table, columns and column data types'
+        label='Description of table, columns, and number of rows'
         variant='outlined'
       />
       <Button
-        onClick={handleSubmit}
+        onClick={() => {
+          setError('');
+          handleSubmit();
+        }}
         variant='contained'
         sx={{ maxWidth: 1000, marginBottom: 4 }}
       >

@@ -3,7 +3,7 @@ import cors from 'cors';
 import 'dotenv/config';
 import { queryOpenai } from './controllers/openaiController.js';
 import { parseNaturalLanguageQuery } from './controllers/naturalLanguageController.js';
-// import { populateDatabase } from './controllers.databaseQueryController.js';
+import { populateDatabase } from './controllers/databaseQueryController.js';
 
 const app = express();
 
@@ -13,13 +13,14 @@ app.use(express.json());
 app.use(
   '/api/query',
   (req, res, next) => {
-    console.log('Found Endpoint!');
+    // console.log('Found Endpoint!');
     return next();
   },
   parseNaturalLanguageQuery,
   queryOpenai,
+  populateDatabase,
   (_req, res, _next) => {
-    res.status(200).json(res.locals.aiQueryString);
+    res.status(200).json(res.locals.databaseQuery);
   }
 );
 
@@ -34,7 +35,7 @@ app.use((err, req, res, next) => {
     message: { err: 'An error occurred' },
   };
   const errorObj = Object.assign({}, defaultErr, err);
-  console.log(errorObj.log);
+  // console.log(errorObj.log);
   return res.status(errorObj.status).json(errorObj.message);
 });
 

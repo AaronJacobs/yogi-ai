@@ -6,9 +6,10 @@ const examples = `
 
 Input = I want a table about movies that includes the title, year, genre, and director. Generate three movies to go into said database.
 Output =
-"CREATE SCHEMA IF NOT EXISTS movie_db;
+\`\`\`sql
+CREATE SCHEMA IF NOT EXISTS movie_db;
 
-CREATE TABLE movie_db.movies (
+CREATE TABLE IF NOT EXISTS movie_db.movies (
   id SERIAL PRIMARY KEY,
   title VARCHAR(255),
   year INT,
@@ -22,14 +23,16 @@ VALUES
   ('The Matrix', 1999, 'Action', 'The Wachowskis'),
   ('The Dark Knight', 2008, 'Action', 'Christopher Nolan')
 RETURNING *;
-"
+\`\`\`
 `;
+
 const instructFormat =
   'You should return ONLY the specific query and data in the plain SQL format that can directly be sent to the SQL database to populate.';
 const instructRules = `
   Your SQL INSERT query should always return the results of the inserted rows.
-  You MUST return only SQL queries.
-`;
+  You MUST return only SQL queries in proper markdown format.
+  You MUST NOT use the following keywords:'DROP', 'DELETE', 'TRUNCATE', 'ALTER', '--', '/*', '*/'.
+  `;
 
 const prompt = `
   Your Role: ${instructRole}
