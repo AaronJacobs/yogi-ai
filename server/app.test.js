@@ -1,9 +1,26 @@
 import app from './app.js';
 import request from 'supertest';
 
+const mockQuery = `CREATE SCHEMA IF NOT EXISTS movie_db;
+
+CREATE TABLE IF NOT EXISTS movie_db.movies (
+  id SERIAL PRIMARY KEY,
+  title VARCHAR(255),
+  year INT,
+  genre VARCHAR(100),
+  director VARCHAR(255)
+);
+
+INSERT INTO movie_db.movies (title, year, genre, director)
+VALUES
+  ('Inception', 2010, 'Sci-Fi', 'Christopher Nolan'),
+  ('The Matrix', 1999, 'Action', 'The Wachowskis'),
+  ('The Dark Knight', 2008, 'Action', 'Christopher Nolan')
+RETURNING *;`;
+
 jest.mock('./controllers/naturalLanguageController', () => ({
   parseNaturalLanguageQuery: jest.fn((req, res, next) => {
-    res.body.naturalLanguageQuery = req.body.naturalLanguageQuery;
+    res.locals.naturalLanguageQuery = req.body.naturalLanguageQuery;
     next();
   }),
 }));
@@ -14,27 +31,12 @@ jest.mock('./controllers/openaiController', () => ({
       choices: [
         {
           message: {
-            content: `CREATE SCHEMA IF NOT EXISTS movie_db;
-
-              CREATE TABLE IF NOT EXISTS movie_db.movies (
-                id SERIAL PRIMARY KEY,
-                title VARCHAR(255),
-                year INT,
-                genre VARCHAR(100),
-                director VARCHAR(255)
-              );
-
-              INSERT INTO movie_db.movies (title, year, genre, director)
-              VALUES
-                ('Inception', 2010, 'Sci-Fi', 'Christopher Nolan'),
-                ('The Matrix', 1999, 'Action', 'The Wachowskis'),
-                ('The Dark Knight', 2008, 'Action', 'Christopher Nolan')
-              RETURNING *;`,
+            content: mockQuery,
           },
         },
       ],
     };
-    res.body.aiQueryString = mockCompletion.choices[0].message.content;
+    res.locals.aiQueryString = mockCompletion.choices[0].message.content;
     res.locals.databaseQuery = [mockCompletion.choices[0].message.content];
     next();
   }),
@@ -42,7 +44,7 @@ jest.mock('./controllers/openaiController', () => ({
 
 jest.mock('./controllers/databaseQueryController', () => ({
   populateDatabase: jest.fn((req, res, next) => {
-    res.body.results = {
+    res.locals.results = {
       rows: [
         {
           id: 1,
@@ -69,40 +71,8 @@ describe('POST /api/query', () => {
         })
       )
       .set('Content-Type', 'application/json');
-
     expect(response.status).toBe(200);
-    expect(response.body).toHaveProperty('aiQueryString');
-    expect(response.body.aiQueryString).toBe(
-      `CREATE SCHEMA IF NOT EXISTS movie_db;
-
-      CREATE TABLE IF NOT EXISTS movie_db.movies (
-        id SERIAL PRIMARY KEY,
-        title VARCHAR(255),
-        year INT,
-        genre VARCHAR(100),
-        director VARCHAR(255)
-      );
-
-      INSERT INTO movie_db.movies (title, year, genre, director)
-      VALUES
-        ('Inception', 2010, 'Sci-Fi', 'Christopher Nolan'),
-        ('The Matrix', 1999, 'Action', 'The Wachowskis'),
-        ('The Dark Knight', 2008, 'Action', 'Christopher Nolan')
-      RETURNING *;`
-    );
-
-    expect(response.body).toHaveProperty('results');
-    expect(response.body.results).toEqual({
-      rows: [
-        {
-          id: 1,
-          title: 'Test1',
-          year: 2010,
-          genre: 'Sci-Fi',
-          director: 'Christopher Nolan',
-        },
-      ],
-    });
+    expect(response.body).toEqual([mockQuery]);
   });
 });
 describe('404 route', () => {

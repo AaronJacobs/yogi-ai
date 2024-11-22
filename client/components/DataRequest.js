@@ -21,9 +21,12 @@ const DataRequest = () => {
         body: JSON.stringify({ postgreSqlUri, naturalLanguageQuery }),
       });
       const responseData = await response.json();
-      setServerResponse(responseData);
+      if (!responseData.ok) {
+        setError(responseData)
+      } else {
+        setServerResponse(responseData);
+      }
     } catch (err) {
-      console.log(err);
       setError(err.message);
     } finally {
       setLoading(false);

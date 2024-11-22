@@ -18,14 +18,14 @@ jest.mock('openai', () => {
     },
   };
   return jest.fn(() => mOpenAI);
-    // const mockCreate = jest.fn();
-    // return jest.fn(() => ({
-    // chat: {
-    //     completions: {
-    //     create: mockCreate,
-    //     },
-    // },
-    // }));
+  // const mockCreate = jest.fn();
+  // return jest.fn(() => ({
+  // chat: {
+  //     completions: {
+  //     create: mockCreate,
+  //     },
+  // },
+  // }));
 });
 
 describe('openaiController', () => {
@@ -75,8 +75,8 @@ describe('openaiController', () => {
     it('should return an error if openai api returns an error', async () => {
       // Mock the create method to reject with an error
       //   const mockOpenai = require('openai').default.mock.instances[0].chat.completions.create;
-    //   const mockCreateReturn = jest.mockRejectedValue(new Error('OpenAI API error'));
-    //   console.log('mockRejectedValue: ', await mockCreateReturn());
+      //   const mockCreateReturn = jest.mockRejectedValue(new Error('OpenAI API error'));
+      //   console.log('mockRejectedValue: ', await mockCreateReturn());
 
       await mockCreate.mockRejectedValue(new Error('OpenAI API error'));
 
@@ -87,24 +87,122 @@ describe('openaiController', () => {
       const next = jest.fn();
 
       await queryOpenai(req, res, next);
-      console.log('calls: ', mockCreate.mock.calls);
+      // console.log('calls: ', mockCreate.mock.calls);
 
-    //   expect(mockCreate).toHaveBeenCalledWith({
-    //     model: 'gpt-4o',
-    //     temperature: 1,
-    //     n: 1,
-    //     messages: [
-    //         { role: 'system', content: expect.any(String) }, // Matches the 'prompt' value
-    //         { role: 'user', content: 'test query' },
-    //       ],
-    //   })
+      //   expect(mockCreate).toHaveBeenCalledWith({
+      //     model: 'gpt-4o',
+      //     temperature: 1,
+      //     n: 1,
+      //     messages: [
+      //         { role: 'system', content: expect.any(String) }, // Matches the 'prompt' value
+      //         { role: 'user', content: 'test query' },
+      //       ],
+      //   })
 
       expect(next).toHaveBeenCalledWith({
-        log: 'openaiController.queryOpenAi: Error: OpenAI API error',
+        log: 'openaiController.queryOpenAi: ' + 'OpenAI API error',
         status: 500,
         message: {
           err: 'A server error occured while querying OpenAI',
         },
+      });
+    });
+    it('should process a successful OpenAI response', async () => {
+      const mockApiResponse = {
+        choices: [
+          {
+            message: {
+              content: 'Here is your result!',
+            },
+          },
+        ],
+      };
+
+      mockCreate.mockResolvedValue(mockApiResponse);
+
+      const { queryOpenai } = await import('./openaiController');
+
+      const req = { body: {} };
+      const res = { locals: { naturalLanguageQuery: 'test query' } };
+      const next = jest.fn();
+
+      await queryOpenai(req, res, next);
+
+      expect(res.locals.aiQueryString).toBe('Here is your result!');
+      expect(next).toHaveBeenCalled();
+    });
+
+    it('should extract SQL from OpenAI response if present', async () => {
+      const mockApiResponse = {
+        choices: [
+          {
+            message: {
+              content: 'Here is your query:\n```sql\nSELECT * FROM users;\n```',
+            },
+          },
+        ],
+      };
+
+      mockCreate.mockResolvedValue(mockApiResponse);
+
+      const { queryOpenai } = await import('./openaiController');
+
+      const req = { body: {} };
+      const res = { locals: { naturalLanguageQuery: 'test query' } };
+      const next = jest.fn();
+
+      await queryOpenai(req, res, next);
+
+      expect(res.locals.databaseQuery).toEqual(['SELECT * FROM users;']);
+      expect(next).toHaveBeenCalled();
+    });
+
+    it('should handle case where SQL is not found in the response', async () => {
+      const mockApiResponse = {
+        choices: [
+          {
+            message: {
+              content: 'Here is some other text without SQL code.',
+            },
+          },
+        ],
+      };
+
+      mockCreate.mockResolvedValue(mockApiResponse);
+
+      const { queryOpenai } = await import('./openaiController');
+
+      const req = { body: {} };
+      const res = { locals: { naturalLanguageQuery: 'test query' } };
+      const next = jest.fn();
+
+      await queryOpenai(req, res, next);
+
+      expect(res.locals.databaseQuery).toEqual([
+        'Here is some other text without SQL code.',
+      ]);
+      expect(next).toHaveBeenCalled();
+    });
+
+    it('should handle malformed responses from OpenAI', async () => {
+      const mockApiResponse = {
+        choices: [],
+      };
+
+      mockCreate.mockResolvedValue(mockApiResponse);
+
+      const { queryOpenai } = await import('./openaiController');
+
+      const req = { body: {} };
+      const res = { locals: { naturalLanguageQuery: 'test query' } };
+      const next = jest.fn();
+
+      await queryOpenai(req, res, next);
+
+      expect(next).toHaveBeenCalledWith({
+        log: 'OpenAI did not recieve a completion',
+        status: 500,
+        message: { err: 'An error occured while querying OpenAI' },
       });
     });
   });

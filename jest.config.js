@@ -8,5 +8,6 @@ export default {
     '!**/build/**',
     '!**/coverage/**',
     '!**/client/index.js',
+    '!**/server/server.js',
   ],
 };
