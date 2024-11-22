@@ -1,10 +1,11 @@
-import { Client } from 'pg';
+import pg from 'pg';
+const { Client } = pg;
 
 export const populateDatabase = async (req, res, next) => {
   const pgUri = req.body.postgreSqlUri;
   if (!pgUri) {
     return next({
-      message: 'No database URI provided in the request body',
+      message: 'No database URI provided in the request body.',
       status: 400,
     });
   }
@@ -12,8 +13,9 @@ export const populateDatabase = async (req, res, next) => {
     connectionString: pgUri,
   });
 
-  const { aiQueryString } = res.locals;
-  if (!aiQueryString) {
+  const { databaseQuery } = res.locals;
+  // console.log('database query: ', databaseQuery[0])
+  if (!databaseQuery) {
     return next({
       message: 'No query string available in the response locals',
       status: 400,
@@ -28,26 +30,26 @@ export const populateDatabase = async (req, res, next) => {
     '--',
     '/*',
     '*/',
-    ';',
   ];
+  // console.log(databaseQuery.length)
   const containsForbiddenKeyword = forbiddenKeywords.some((keyword) =>
-    aiQueryString.toUpperCase().includes(keyword)
+    databaseQuery[0].toUpperCase().includes(keyword)
   );
   if (containsForbiddenKeyword) {
     return next({
-      message: 'The generated SQL query contains forbidden keywords.',
+      message: 'The generated SQL query contains forbidden keywords.', //could we mark which?
       status: 400,
     });
   }
 
-  console.log('Running query:', aiQueryString);
+  // console.log('Running query:', databaseQuery);
   try {
     await client.connect();
     await client.query('BEGIN');
-    const results = await client.query(aiQueryString);
+    const results = await client.query(databaseQuery[0]);
     await client.query('COMMIT');
     res.locals.results = results;
-
+    // console.log(`Upload result: ${JSON.stringify(results,null,2)}`);
     return next();
   } catch (error) {
     await client.query('ROLLBACK');

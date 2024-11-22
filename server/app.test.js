@@ -1,0 +1,114 @@
+import app from './app.js';
+import request from 'supertest';
+
+jest.mock('./controllers/naturalLanguageController', () => ({
+  parseNaturalLanguageQuery: jest.fn((req, res, next) => {
+    res.body.naturalLanguageQuery = req.body.naturalLanguageQuery;
+    next();
+  }),
+}));
+
+jest.mock('./controllers/openaiController', () => ({
+  queryOpenai: jest.fn((req, res, next) => {
+    const mockCompletion = {
+      choices: [
+        {
+          message: {
+            content: `CREATE SCHEMA IF NOT EXISTS movie_db;
+
+              CREATE TABLE IF NOT EXISTS movie_db.movies (
+                id SERIAL PRIMARY KEY,
+                title VARCHAR(255),
+                year INT,
+                genre VARCHAR(100),
+                director VARCHAR(255)
+              );
+
+              INSERT INTO movie_db.movies (title, year, genre, director)
+              VALUES
+                ('Inception', 2010, 'Sci-Fi', 'Christopher Nolan'),
+                ('The Matrix', 1999, 'Action', 'The Wachowskis'),
+                ('The Dark Knight', 2008, 'Action', 'Christopher Nolan')
+              RETURNING *;`,
+          },
+        },
+      ],
+    };
+    res.body.aiQueryString = mockCompletion.choices[0].message.content;
+    res.locals.databaseQuery = [mockCompletion.choices[0].message.content];
+    next();
+  }),
+}));
+
+jest.mock('./controllers/databaseQueryController', () => ({
+  populateDatabase: jest.fn((req, res, next) => {
+    res.body.results = {
+      rows: [
+        {
+          id: 1,
+          title: 'Test1',
+          year: 2010,
+          genre: 'Sci-Fi',
+          director: 'Christopher Nolan',
+        },
+      ],
+    };
+    next();
+  }),
+}));
+
+describe('POST /api/query', () => {
+  it('should return 200 and the expected response', async () => {
+    const response = await request(app)
+      .post('/api/query')
+      .send(
+        JSON.stringify({
+          naturalLanguageQuery:
+            'I would like a table of different pizzas with topping combinations and prices.  I want 10 rows.',
+          postgreSqlUri: 'postgres://user:password@localhost:5432/mydb',
+        })
+      )
+      .set('Content-Type', 'application/json');
+
+    expect(response.status).toBe(200);
+    expect(response.body).toHaveProperty('aiQueryString');
+    expect(response.body.aiQueryString).toBe(
+      `CREATE SCHEMA IF NOT EXISTS movie_db;
+
+      CREATE TABLE IF NOT EXISTS movie_db.movies (
+        id SERIAL PRIMARY KEY,
+        title VARCHAR(255),
+        year INT,
+        genre VARCHAR(100),
+        director VARCHAR(255)
+      );
+
+      INSERT INTO movie_db.movies (title, year, genre, director)
+      VALUES
+        ('Inception', 2010, 'Sci-Fi', 'Christopher Nolan'),
+        ('The Matrix', 1999, 'Action', 'The Wachowskis'),
+        ('The Dark Knight', 2008, 'Action', 'Christopher Nolan')
+      RETURNING *;`
+    );
+
+    expect(response.body).toHaveProperty('results');
+    expect(response.body.results).toEqual({
+      rows: [
+        {
+          id: 1,
+          title: 'Test1',
+          year: 2010,
+          genre: 'Sci-Fi',
+          director: 'Christopher Nolan',
+        },
+      ],
+    });
+  });
+});
+describe('404 route', () => {
+  it('should return a 404 error and "Page Not Found" for ummatched routes', async () => {
+    const response = await request(app).get('/other-route');
+    expect(response.status).toBe(404);
+    expect(response.text).toBe('Page not found');
+  });
+});
