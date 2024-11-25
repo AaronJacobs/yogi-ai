@@ -28,8 +28,8 @@
   "scripts": {
     "start": "node server/server.js",
     "build": "webpack --mode production",
-    "dev": "webpack server --open",
-    "devc": "concurrently \"webpack --mode development\" \"nodemon server/server.js\"",
+    "dev": "webpack serve --open --port 8080",
+    "devc": "concurrently \"npm:dev\" \"nodemon server/server.js\"",
     "test": "jest",
     "testc": "jest --coverage"
   },
